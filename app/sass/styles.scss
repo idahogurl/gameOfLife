@@ -1,0 +1,14 @@
+body {
+    margin: 20px;
+}
+.board-row {
+    height: 100px;
+    .alive {
+        background-color: green;
+        height: inherit;
+    }
+    .dead {
+        background-color: black;
+        height: inherit;
+    }
+}
