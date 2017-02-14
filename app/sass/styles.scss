@@ -2,13 +2,22 @@ body {
     margin: 20px;
 }
 .board-row {
-    height: 100px;
-    .alive {
-        background-color: green;
-        height: inherit;
-    }
-    .dead {
-        background-color: black;
-        height: inherit;
-    }
+    display: table-row;
+    height: 20px;
+    
 }
+
+.board-cell {
+        display: table-cell;
+        height: inherit;
+        width: 20px;
+        border-bottom: 1px solid silver;
+        border-right: 1px solid silver;
+        
+        &.alive {
+            background-color: green; 
+        }
+        &.dead {
+            background-color: black;
+        }
+    }

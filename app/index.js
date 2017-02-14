@@ -25,18 +25,58 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 require('./sass/styles.scss');
 const react_1 = require("react");
+class BoardCell extends react_1.Component {
+    render() {
+        let status = this.props.val === "X" ? "alive" : "dead";
+        return React.createElement("div", { className: "board-cell " + status }, "\u00A0");
+    }
+    shouldComponentUpdate(nextProps, nextState) {
+        return this.props.val != nextProps.val;
+    }
+}
+class BoardRow extends react_1.Component {
+    render() {
+        let j = 1;
+        let cells = this.props.cells.map(cell => {
+            j++;
+            return React.createElement(BoardCell, { key: this.props.rowNumber + "_" + j, val: cell });
+        });
+        return (React.createElement("div", { className: "board-row" }, cells));
+    }
+}
+class GameBoard extends react_1.Component {
+    render() {
+        let i = 1;
+        let rows = this.props.board.map(row => {
+            i++;
+            return React.createElement(BoardRow, { key: i, rowNumber: i, cells: row });
+        });
+        return (React.createElement("div", null, rows));
+    }
+}
+class GameControlButton extends react_1.Component {
+    render() {
+        return React.createElement("button", { onClick: this.props.onClick }, this.props.text);
+    }
+}
 class GameOfLife extends react_1.Component {
     constructor() {
         super();
-        this.height = 5;
-        this.width = 5;
+        this.height = 11;
+        this.width = 38;
+        this.start = this.start.bind(this);
+        this.stop = this.stop.bind(this);
+        this.clear = this.clear.bind(this);
+        this.getNextGeneration = this.getNextGeneration.bind(this);
     }
     setupBoard() {
         let board = new Array(this.height);
+        let count = 0;
         for (let i = 0; i < this.height; i++) {
             board[i] = new Array(this.width);
             for (let j = 0; j < this.width; j++) {
                 board[i][j] = Math.round(Math.random()) === 1 ? "X" : ""; //assign alive and dead cells
+                count++;
             }
         }
         return board;
@@ -44,64 +84,72 @@ class GameOfLife extends react_1.Component {
     getNextGeneration() {
         //loop through rows
         //loop through cells
+        debugger;
         let newBoard = this.state.board.slice();
-        for (let rowIndex = 0; rowIndex < this.height; rowIndex++) {
-            for (let colIndex = 0; colIndex < this.width; colIndex++) {
+        for (let rowIndex = 0; rowIndex < newBoard.length; rowIndex++) {
+            for (let colIndex = 0; colIndex < newBoard[rowIndex].length; colIndex++) {
                 let n = 0; //number of live neighbors
-                //get above, left, right and bottom neighbor
-                for (let x = -1; x <= 1; x++) {
-                    for (let y = -1; y <= 1; y++) {
-                        if (newBoard[x] !== undefined && newBoard[x][y] !== undefined && newBoard[x][y] === "X") {
-                            //check if cell exists and is alive
-                            n++;
-                        }
-                    }
-                }
-                let cell = newBoard[rowIndex][colIndex];
-                switch (n) {
-                    case 0: //fewer than two live = dies
-                    case 1:
-                        cell = "";
-                        break;
-                    case 2:
-                        break;
-                    case 3:
-                        cell = "X";
-                    default:
-                        cell = "";
-                        break;
-                }
+                let neighbors = new Array(8);
+                neighbors[0] = this.isNeighborAlive(rowIndex - 1, colIndex - 1, newBoard); //top left
+                neighbors[1] = this.isNeighborAlive(rowIndex - 1, colIndex, newBoard);
+                neighbors[2] = this.isNeighborAlive(rowIndex - 1, colIndex + 1, newBoard); //top right
+                neighbors[3] = this.isNeighborAlive(rowIndex, colIndex + 1, newBoard); //center right
+                neighbors[4] = this.isNeighborAlive(rowIndex + 1, colIndex, newBoard); //bottom left
+                neighbors[5] = this.isNeighborAlive(rowIndex + 1, colIndex, newBoard); //bottom center
+                neighbors[6] = this.isNeighborAlive(rowIndex + 1, colIndex + 1, newBoard); //bottom right
+                neighbors[7] = this.isNeighborAlive(rowIndex, colIndex - 1, newBoard); //center left
+                let alive = neighbors.filter(i => {
+                    return i === true;
+                });
+                let cell = this.getNewValue(alive.length, newBoard[rowIndex][colIndex]);
                 newBoard[rowIndex][colIndex] = cell;
             }
         }
-        this.setState({ board: newBoard });
+        this.setState({ board: newBoard, generationCount: this.state.generationCount + 1 });
+    }
+    getNewValue(length, currentValue) {
+        switch (length) {
+            case 0: //fewer than two live = dies
+            case 1:
+                return "";
+            case 2:
+                return currentValue;
+            case 3:
+                return "X";
+            default:
+                return "";
+        }
+    }
+    isNeighborAlive(rowIndex, colIndex, board) {
+        return board[rowIndex] !== undefined
+            && board[rowIndex][colIndex] !== undefined
+            && board[rowIndex][colIndex] === "X";
+    }
+    componentDidUpdate() {
+        if (this.state.running) {
+            requestAnimationFrame(this.getNextGeneration);
+        }
     }
     componentWillMount() {
-        this.state = { board: this.setupBoard() };
+        this.state = { board: this.setupBoard(), running: false, generationCount: 0 };
     }
     start() {
+        this.setState({ generationCount: 1, running: true });
     }
     clear() {
+        this.setState({ board: this.setupBoard(), generationCount: 0, running: false });
     }
     stop() {
+        this.setState({ running: false });
     }
     render() {
+        return (React.createElement("div", null,
+            React.createElement(GameBoard, { board: this.state.board }),
+            "Generation Number: ",
+            this.state.generationCount,
+            React.createElement(GameControlButton, { onClick: this.start, text: "Start" }),
+            React.createElement(GameControlButton, { onClick: this.stop, text: "Stop" }),
+            React.createElement(GameControlButton, { onClick: this.clear, text: "Clear" })));
     }
 }
-class GameOfLifeBoard extends react_1.Component {
-    render() {
-        let i = -1;
-        let rows = this.props.board.map(row => {
-            let j = -1;
-            let cells = row.map(cell => {
-                j++;
-                let status = cell === "X" ? "alive" : "dead";
-                return (React.createElement("div", { key: i + "_" + j, className: status + " col-xs-2" }, "\u00A0"));
-            });
-            i++;
-            return (React.createElement("div", { key: i, className: "row board-row" }, cells));
-        });
-        return (React.createElement("div", null, rows));
-    }
-}
-ReactDOM.render(React.createElement(GameOfLifeBoard, null), document.getElementById("gameBoard"));
+ReactDOM.render(React.createElement(GameOfLife, null), document.getElementById("gameBoard"));
