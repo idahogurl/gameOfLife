@@ -206,8 +206,9 @@ class GameOfLife extends Component<any,any> {
     render() {
         return (
             <div>
-                <div className="row no-gutters align-items-bottom">
-                    <div className="col"><h1>Game of Life</h1> by John Conway</div>
+                <div className="row no-gutters align-items-center">
+                    <div className="col-xs-3"><h1>Game of Life</h1></div>
+                    <div className="col-xs-9">&nbsp;&nbsp;by John Conway</div>
                 </div>
                 <div className="row no-gutters">
                     <div className="col"><GameBoard board={this.state.board}/></div>

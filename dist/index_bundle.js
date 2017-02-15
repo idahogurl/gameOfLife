@@ -9909,10 +9909,10 @@ class GameOfLife extends react_1.Component {
     }
     render() {
         return (React.createElement("div", null,
-            React.createElement("div", { className: "row no-gutters align-items-bottom" },
-                React.createElement("div", { className: "col" },
-                    React.createElement("h1", null, "Game of Life"),
-                    " by John Conway")),
+            React.createElement("div", { className: "row no-gutters align-items-center" },
+                React.createElement("div", { className: "col-xs-3" },
+                    React.createElement("h1", null, "Game of Life")),
+                React.createElement("div", { className: "col-xs-9" }, "\u00A0\u00A0by John Conway")),
             React.createElement("div", { className: "row no-gutters" },
                 React.createElement("div", { className: "col" },
                     React.createElement(GameBoard, { board: this.state.board }))),
