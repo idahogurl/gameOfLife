@@ -27,7 +27,7 @@ require('./sass/styles.scss');
 const react_1 = require("react");
 class BoardCell extends react_1.Component {
     render() {
-        let status = this.props.val === "X" ? "alive" : "dead";
+        let status = this.props.val === "A" ? "alive" : this.props.val === "D" ? "dead" : "edge";
         return React.createElement("div", { className: "board-cell " + status }, "\u00A0");
     }
     shouldComponentUpdate(nextProps, nextState) {
@@ -56,27 +56,35 @@ class GameBoard extends react_1.Component {
 }
 class GameControlButton extends react_1.Component {
     render() {
-        return React.createElement("button", { onClick: this.props.onClick }, this.props.text);
+        return React.createElement("button", { onClick: this.props.onClick, id: this.props.text.toLowerCase() }, this.props.text);
     }
 }
 class GameOfLife extends react_1.Component {
     constructor() {
         super();
-        this.height = 11;
-        this.width = 38;
+        this.height = 30;
+        this.width = 50;
+        this.height += 2; //add 2 for edge cells
+        this.width += 2;
+        this.fps = 15;
         this.start = this.start.bind(this);
         this.stop = this.stop.bind(this);
         this.clear = this.clear.bind(this);
         this.getNextGeneration = this.getNextGeneration.bind(this);
+        this.draw = this.draw.bind(this);
     }
-    setupBoard() {
+    setupRandomBoard() {
+        debugger;
         let board = new Array(this.height);
-        let count = 0;
-        for (let i = 0; i < this.height; i++) {
-            board[i] = new Array(this.width);
-            for (let j = 0; j < this.width; j++) {
-                board[i][j] = Math.round(Math.random()) === 1 ? "X" : ""; //assign alive and dead cells
-                count++;
+        for (let row = 0; row < this.height; row++) {
+            board[row] = new Array(this.width);
+            for (let col = 0; col < this.width; col++) {
+                if (row === 0 || row === this.height - 1 || col === 0 || col === this.width - 1) {
+                    board[row][col] = "E";
+                }
+                else {
+                    board[row][col] = Math.round(Math.random()) === 1 ? "A" : "D"; //assign alive and dead cells
+                }
             }
         }
         return board;
@@ -85,71 +93,93 @@ class GameOfLife extends react_1.Component {
         //loop through rows
         //loop through cells
         debugger;
-        let newBoard = this.state.board.slice();
-        for (let rowIndex = 0; rowIndex < newBoard.length; rowIndex++) {
-            for (let colIndex = 0; colIndex < newBoard[rowIndex].length; colIndex++) {
+        let tempBoard = this.state.board.slice();
+        for (let row = 1; row < tempBoard.length - 1; row++) {
+            for (let col = 1; col < tempBoard[row].length - 1; col++) {
                 let n = 0; //number of live neighbors
+                //if (newBoard[row][col] !== "E") {
                 let neighbors = new Array(8);
-                neighbors[0] = this.isNeighborAlive(rowIndex - 1, colIndex - 1, newBoard); //top left
-                neighbors[1] = this.isNeighborAlive(rowIndex - 1, colIndex, newBoard);
-                neighbors[2] = this.isNeighborAlive(rowIndex - 1, colIndex + 1, newBoard); //top right
-                neighbors[3] = this.isNeighborAlive(rowIndex, colIndex + 1, newBoard); //center right
-                neighbors[4] = this.isNeighborAlive(rowIndex + 1, colIndex, newBoard); //bottom left
-                neighbors[5] = this.isNeighborAlive(rowIndex + 1, colIndex, newBoard); //bottom center
-                neighbors[6] = this.isNeighborAlive(rowIndex + 1, colIndex + 1, newBoard); //bottom right
-                neighbors[7] = this.isNeighborAlive(rowIndex, colIndex - 1, newBoard); //center left
+                neighbors[0] = this.isNeighborAlive(row - 1, col - 1, tempBoard); //top left
+                neighbors[1] = this.isNeighborAlive(row - 1, col, tempBoard);
+                neighbors[2] = this.isNeighborAlive(row - 1, col + 1, tempBoard); //top right
+                neighbors[3] = this.isNeighborAlive(row, col + 1, tempBoard); //center right
+                neighbors[4] = this.isNeighborAlive(row + 1, col, tempBoard); //bottom left
+                neighbors[5] = this.isNeighborAlive(row + 1, col, tempBoard); //bottom center
+                neighbors[6] = this.isNeighborAlive(row + 1, col + 1, tempBoard); //bottom right
+                neighbors[7] = this.isNeighborAlive(row, col - 1, tempBoard); //center left
                 let alive = neighbors.filter(i => {
                     return i === true;
                 });
-                let cell = this.getNewValue(alive.length, newBoard[rowIndex][colIndex]);
-                newBoard[rowIndex][colIndex] = cell;
+                let cell = this.getNewValue(alive.length, tempBoard[row][col]);
+                tempBoard[row][col] = cell;
             }
         }
-        this.setState({ board: newBoard, generationCount: this.state.generationCount + 1 });
+        this.setState({ board: tempBoard, generationCount: this.state.generationCount + 1 });
     }
     getNewValue(length, currentValue) {
         switch (length) {
-            case 0: //fewer than two live = dies
+            case 0: //dies
             case 1:
-                return "";
+                return "D";
             case 2:
                 return currentValue;
             case 3:
-                return "X";
+                return "A";
             default:
-                return "";
+                return "D";
         }
     }
     isNeighborAlive(rowIndex, colIndex, board) {
         return board[rowIndex] !== undefined
             && board[rowIndex][colIndex] !== undefined
-            && board[rowIndex][colIndex] === "X";
+            && board[rowIndex][colIndex] === "A";
+    }
+    draw() {
+        let self = this;
+        setTimeout(function () {
+            requestAnimationFrame(self.getNextGeneration);
+            // Drawing code goes here
+        }, 1000 / this.fps);
     }
     componentDidUpdate() {
         if (this.state.running) {
-            requestAnimationFrame(this.getNextGeneration);
+            this.draw();
         }
     }
     componentWillMount() {
-        this.state = { board: this.setupBoard(), running: false, generationCount: 0 };
+        this.state = { board: this.setupRandomBoard(), running: false, generationCount: 0 };
     }
-    start() {
+    start(e) {
+        e.target.blur();
         this.setState({ generationCount: 1, running: true });
     }
-    clear() {
-        this.setState({ board: this.setupBoard(), generationCount: 0, running: false });
+    clear(e) {
+        e.target.blur();
+        this.setState({ board: this.setupRandomBoard(), generationCount: 0, running: false });
     }
-    stop() {
+    stop(e) {
+        e.target.blur();
+        cancelAnimationFrame(this.requestId);
         this.setState({ running: false });
     }
     render() {
         return (React.createElement("div", null,
-            React.createElement(GameBoard, { board: this.state.board }),
-            "Generation Number: ",
-            this.state.generationCount,
-            React.createElement(GameControlButton, { onClick: this.start, text: "Start" }),
-            React.createElement(GameControlButton, { onClick: this.stop, text: "Stop" }),
-            React.createElement(GameControlButton, { onClick: this.clear, text: "Clear" })));
+            React.createElement("div", { className: "row no-gutters align-items-bottom" },
+                React.createElement("div", { className: "col" },
+                    React.createElement("h1", null, "Game of Life"),
+                    " by John Conway")),
+            React.createElement("div", { className: "row no-gutters" },
+                React.createElement("div", { className: "col" },
+                    React.createElement(GameBoard, { board: this.state.board }))),
+            React.createElement("div", { id: "controls", className: "row row-eq-height align-items-center no-gutters" },
+                React.createElement("div", { className: "col-xs-6" },
+                    React.createElement(GameControlButton, { onClick: this.start, text: "Start" }),
+                    React.createElement(GameControlButton, { onClick: this.stop, text: "Stop" }),
+                    React.createElement(GameControlButton, { onClick: this.clear, text: "Clear" })),
+                React.createElement("div", { className: "col-xs-6" },
+                    React.createElement("h4", null,
+                        "Generation: ",
+                        this.state.generationCount)))));
     }
 }
 ReactDOM.render(React.createElement(GameOfLife, null), document.getElementById("gameBoard"));

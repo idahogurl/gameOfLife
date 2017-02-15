@@ -30,7 +30,7 @@ import {Component} from 'react';
 
 class BoardCell extends Component<any,any> {
     render() {
-        let status = this.props.val === "X" ? "alive" : "dead";
+        let status = this.props.val === "A" ? "alive" : this.props.val === "D" ? "dead" : "edge";
         return <div className={"board-cell " + status}>&nbsp;</div>
     }
     shouldComponentUpdate(nextProps, nextState) {
@@ -75,114 +75,153 @@ class GameBoard extends Component<any,any> {
 
 class GameControlButton extends Component<any, any> {
     render() {
-        return <button onClick={this.props.onClick}>{this.props.text}</button>;
+        return <button onClick={this.props.onClick} id={this.props.text.toLowerCase()}>{this.props.text}</button>;
     }
 }
 
 class GameOfLife extends Component<any,any> {
     height: number;
     width: number;
+    fps: number;
+    frameCount: number;
+    requestId: any;
     constructor() {
         super();
         
-        this.height = 11;
-        this.width = 38;
+        this.height = 30;
+        this.width = 50;
+        
+        this.height += 2; //add 2 for edge cells
+        this.width += 2;
+        
+        this.fps = 15;
 
         this.start = this.start.bind(this);
         this.stop = this.stop.bind(this);
         this.clear = this.clear.bind(this); 
-        this.getNextGeneration = this.getNextGeneration.bind(this);   
+        this.getNextGeneration = this.getNextGeneration.bind(this);
+        this.draw = this.draw.bind(this);
     }
-
-    setupBoard(): string[][] {
+    setupRandomBoard(): string[][] {
+        debugger;
+        
         let board: string[][] = new Array(this.height);
-        let count: number = 0;
-        for (let i = 0; i < this.height; i++) {
-            board[i] = new Array(this.width);
-            for (let j = 0; j < this.width; j++) {
-               board[i][j] = Math.round(Math.random()) === 1 ? "X" : ""; //assign alive and dead cells
-               count++;
+        
+        for (let row = 0; row < this.height; row++) {
+            board[row] = new Array(this.width);
+            for (let col = 0; col < this.width; col++) {
+                if (row === 0 || row === this.height - 1 || col === 0 || col === this.width - 1) {
+                    board[row][col] = "E";
+                } else {
+                    board[row][col] = Math.round(Math.random()) === 1 ? "A" : "D"; //assign alive and dead cells
+                }
             }
         }
         return board;
     }
-
     getNextGeneration() {
         //loop through rows
         //loop through cells
         debugger;
-        let newBoard = this.state.board.slice();
+        let tempBoard = this.state.board.slice();
 
-        for (let rowIndex: number = 0; rowIndex < newBoard.length; rowIndex++) {
-           for (let colIndex: number = 0; colIndex < newBoard[rowIndex].length; colIndex++) {
+        for (let row = 1; row < tempBoard.length - 1; row++) {
+           for (let col = 1; col < tempBoard[row].length - 1; col++) {
                 let n = 0; //number of live neighbors
                 
+                //if (newBoard[row][col] !== "E") {
                 let neighbors:boolean[] = new Array(8);
                     
-                neighbors[0] = this.isNeighborAlive(rowIndex - 1, colIndex - 1, newBoard); //top left
-                neighbors[1] = this.isNeighborAlive(rowIndex - 1, colIndex, newBoard);
-                neighbors[2] = this.isNeighborAlive(rowIndex - 1, colIndex + 1, newBoard); //top right
-                neighbors[3] = this.isNeighborAlive(rowIndex, colIndex + 1, newBoard); //center right
-                                
-                neighbors[4] = this.isNeighborAlive(rowIndex + 1, colIndex, newBoard); //bottom left
-                neighbors[5] = this.isNeighborAlive(rowIndex + 1, colIndex, newBoard); //bottom center
-                neighbors[6] = this.isNeighborAlive(rowIndex + 1, colIndex + 1, newBoard); //bottom right
-                neighbors[7] = this.isNeighborAlive(rowIndex, colIndex - 1, newBoard); //center left
+                    neighbors[0] = this.isNeighborAlive(row - 1, col - 1, tempBoard); //top left
+                    neighbors[1] = this.isNeighborAlive(row - 1, col, tempBoard);
+                    neighbors[2] = this.isNeighborAlive(row - 1, col + 1, tempBoard); //top right
+                    neighbors[3] = this.isNeighborAlive(row, col + 1, tempBoard); //center right
+                                    
+                    neighbors[4] = this.isNeighborAlive(row + 1, col, tempBoard); //bottom left
+                    neighbors[5] = this.isNeighborAlive(row + 1, col, tempBoard); //bottom center
+                    neighbors[6] = this.isNeighborAlive(row + 1, col + 1, tempBoard); //bottom right
+                    neighbors[7] = this.isNeighborAlive(row, col - 1, tempBoard); //center left
 
-                let alive = neighbors.filter(i => {
-                    return i === true;
-                });
-                
-                let cell:string = this.getNewValue(alive.length, newBoard[rowIndex][colIndex]);
-                newBoard[rowIndex][colIndex] = cell;
-            }
+                    let alive = neighbors.filter(i => {
+                        return i === true;
+                    });
+                    
+                    let cell:string = this.getNewValue(alive.length, tempBoard[row][col]);
+                    tempBoard[row][col] = cell;
+                }
+            //}
         }
 
-        this.setState({board: newBoard, generationCount: this.state.generationCount + 1 });
+        this.setState({board: tempBoard, generationCount: this.state.generationCount + 1 });
     }
     getNewValue(length:number, currentValue:string) : string {        
         switch(length) {
-            case 0: //fewer than two live = dies
+            case 0: //dies
             case 1:                    
-                return "";             
-            case 2: //dead cells can only comeback when it has 3 neighbors so the cell is already alive
+                return "D";             
+            case 2: //stays the same
                 return currentValue;
-            case 3: //two or three live = lives
-                return "X";
+            case 3: //lives or born
+                return "A";
             default: //more than three = dies
-                return "";
+                return "D";
         }
     }
     isNeighborAlive(rowIndex:number, colIndex:number, board: string[][]): boolean {
        return board[rowIndex] !== undefined 
                             && board[rowIndex][colIndex] !== undefined 
-                            && board[rowIndex][colIndex] === "X";
+                            && board[rowIndex][colIndex] === "A";
+    }    
+    draw() {
+        let self = this;
+        setTimeout(function() {
+            requestAnimationFrame(self.getNextGeneration);
+            // Drawing code goes here
+        }, 1000 / this.fps);
     }
     componentDidUpdate() {
-        if (this.state.running) {
-            requestAnimationFrame(this.getNextGeneration);            
+        if (this.state.running ) {
+            this.draw();            
         }
     }
     componentWillMount() {
-        this.state = { board: this.setupBoard(), running: false, generationCount: 0}
+        this.state = { board: this.setupRandomBoard(), running: false, generationCount: 0}
     }
-    start() {
-        this.setState({ generationCount: 1, running: true });
+    start(e) {
+        e.target.blur();
+
+        this.setState({ generationCount: 1, running: true });        
     }
-    clear() {
-        this.setState({ board: this.setupBoard(), generationCount: 0, running: false });
+    clear(e) {
+        e.target.blur();
+
+        this.setState({ board: this.setupRandomBoard(), generationCount: 0, running: false });        
     }
-    stop() {
+    stop(e) {
+        e.target.blur();
+
+        cancelAnimationFrame(this.requestId);
         this.setState({ running: false });
     }
     render() {
         return (
             <div>
-                <GameBoard board={this.state.board}/>
-                Generation Number: {this.state.generationCount}
-                <GameControlButton onClick={this.start} text="Start"/>
-                <GameControlButton onClick={this.stop} text="Stop"/>
-                <GameControlButton onClick={this.clear} text="Clear"/>
+                <div className="row no-gutters align-items-bottom">
+                    <div className="col"><h1>Game of Life</h1> by John Conway</div>
+                </div>
+                <div className="row no-gutters">
+                    <div className="col"><GameBoard board={this.state.board}/></div>
+                </div>
+                <div id="controls" className="row row-eq-height align-items-center no-gutters">
+                     <div className="col-xs-6">
+                        <GameControlButton onClick={this.start} text="Start"/>
+                        <GameControlButton onClick={this.stop} text="Stop"/>
+                        <GameControlButton onClick={this.clear} text="Clear"/>
+                    </div>
+                    <div className="col-xs-6">
+                        <h4>Generation: {this.state.generationCount}</h4>
+                    </div>
+                </div>
             </div>
         );
     }

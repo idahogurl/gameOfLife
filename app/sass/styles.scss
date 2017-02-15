@@ -1,23 +1,72 @@
 body {
     margin: 20px;
+    font-weight: bold;
+    font-family: Roboto;
+    background-image: url("http://www.conwaylife.com/images/back.png");
+    line-height: initial;
+}
+h1, h4 {
+    display: inline;
+    font-family: "Orbitron";
+    vertical-align: bottom;
+}
+h4 {
+    color: gainsboro;
 }
 .board-row {
     display: table-row;
     height: 20px;
-    
 }
-
 .board-cell {
-        display: table-cell;
-        height: inherit;
-        width: 20px;
-        border-bottom: 1px solid silver;
-        border-right: 1px solid silver;
-        
-        &.alive {
-            background-color: green; 
-        }
-        &.dead {
-            background-color: black;
-        }
+    display: table-cell;
+    height: inherit;
+    width: 20px;
+    border-bottom: 1px solid silver;
+    border-right: 1px solid silver;
+    &.edge {
+        display: none;
+        //background-color: blue; 
     }
+    &.alive {
+        background-color: #007849; 
+    }
+    &.dead {
+        background-color: #262228
+    }
+}
+button {
+    border-radius: 40px;
+    width: 70px;
+    height: 70px;
+    padding: 5px;
+    background-clip: content-box;
+    margin-right:25px;
+    /* support: IE9+ */
+}
+#controls {
+    background-color: #262228;
+    border-radius: 10px;
+    padding: 10px;
+}
+#start {
+    background-color: #0375B4;
+    //color: #0375B4;
+    border: 2px solid #0375B4;
+}
+#stop {
+    background-color: #FFCE00;
+    //color: #FFCE00;
+    border: 2px solid #FFCE00;
+}
+#clear {
+    background-color: silver;
+    color: #262228;
+    border: 2px solid silver;   
+}
+#gameBoard {
+    background-color: gainsboro;
+    width: 800px;
+    border-radius: 10px;
+    padding: 20px;
+    margin: auto;
+}
